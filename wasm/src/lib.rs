@@ -30,6 +30,7 @@ pub fn compute(
     }
 
     let mut data = Vec::with_capacity(width * height * 4);
+    let mut color_cache = std::collections::HashMap::new();
 
     let aspect_ratio = width as f64 / height as f64;
 
@@ -68,21 +69,29 @@ pub fn compute(
                 iter += 1;
             }
 
-            let (r, g, b) = if iter == max_iter {
-                // interior if the set is black
+            let color = if iter == max_iter {
                 (0, 0, 0)
             } else {
-                // calc gradient w/ cosine waves
-                let smoothed_iter = iter as f64 + 1.0 - (z.norm_sqr()).log2().log2() / 2.0;
-                let red = (255.0 * (0.5 * (1.0 + (smoothed_iter * 0.01).cos()))).round() as u8;
-                let green = (255.0 * (0.5 * (1.0 + (smoothed_iter * 0.02).cos()))).round() as u8;
-                let blue = (255.0 * (0.5 * (1.0 + (smoothed_iter * 0.03).cos()))).round() as u8;
-                (red, green, blue)
+                // Check cache first
+                if let Some(cached_color) = color_cache.get(&iter) {
+                    *cached_color
+                } else {
+                    // Calculate & store
+                    let smoothed_iter = iter as f64 + 1.0 - (z.norm_sqr()).log2().log2() / 2.0;
+                    let red = (255.0 * (0.5 * (1.0 + (smoothed_iter * 0.01).cos()))).round() as u8;
+                    let green = (255.0 * (0.5 * (1.0 + (smoothed_iter * 0.02).cos()))).round() as u8;
+                    let blue = (255.0 * (0.5 * (1.0 + (smoothed_iter * 0.03).cos()))).round() as u8;
+                    let color = (red, green, blue);
+                    color_cache.insert(iter, color);
+
+                    color
+                }
             };
 
-            data.push(r);
-            data.push(g);
-            data.push(b);
+            data.push(color.0);
+            data.push(color.1);
+            data.push(color.2);
+
             // alpha should always be 1
             data.push(255);
         }
