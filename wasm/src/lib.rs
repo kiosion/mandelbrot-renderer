@@ -4,6 +4,12 @@ use num::complex::Complex;
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+
+    #[wasm_bindgen(js_namespace = console)]
+    fn warn(s: &str);
+
+    #[wasm_bindgen(js_namespace = console)]
     fn error(s: &str);
 }
 
@@ -16,17 +22,21 @@ pub fn compute(
     center_y: f64,
     zoom: f64
 ) -> Vec<u8> {
-    // If max_iter is > 2000, console error and return early, this will probably crash the browser
+    // If max_iter is > 2000, console error and return early,
+    // Anything higher will probably crash the browser
     if max_iter > 2000 {
         error("max_iter must be <= 2000");
+        return Vec::new();
     }
 
     let mut data = Vec::with_capacity(width * height * 4);
 
     let aspect_ratio = width as f64 / height as f64;
 
-    let x_range = 3.5 / zoom; // width of x-values on the complex plane to include
-    let y_range = x_range / aspect_ratio; // adjust height to maintain proper ratio
+    // width of x-values on the complex plane to include
+    let x_range = 3.5 / zoom;
+    // adjust height to maintain proper ratio
+    let y_range = x_range / aspect_ratio;
 
     let x_start = center_x - x_range / 2.0;
     let y_start = center_y - y_range / 2.0;
@@ -59,7 +69,8 @@ pub fn compute(
             }
 
             let (r, g, b) = if iter == max_iter {
-                (0, 0, 0) // interior if the set is black
+                // interior if the set is black
+                (0, 0, 0)
             } else {
                 // calc gradient w/ cosine waves
                 let smoothed_iter = iter as f64 + 1.0 - (z.norm_sqr()).log2().log2() / 2.0;
@@ -72,7 +83,8 @@ pub fn compute(
             data.push(r);
             data.push(g);
             data.push(b);
-            data.push(255); // alpha
+            // alpha should always be 1
+            data.push(255);
         }
     }
 

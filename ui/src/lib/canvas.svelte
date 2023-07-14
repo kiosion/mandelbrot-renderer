@@ -6,59 +6,43 @@
     zoom = n;
     requestAnimationFrame()
   };
-
   export let zoom = 1.0;
 
   const max_iter = 200;
-
   let width: number;
   let height: number;
   let center_x = -0.6;
   let center_y = 0.0;
-
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
   let id: ImageData;
-
   let mouseDown = false;
   let prevMousePos = { x: 0, y: 0 };
 
   const run = () => {
-    try {
-      const data = compute(width, height, max_iter, center_x, center_y, zoom);
-
-      id.data.set(data);
-      ctx.putImageData(id, 0, 0);
-    } catch (e) {
-      console.error(e);
-    }
+    const data = compute(width, height, max_iter, center_x, center_y, zoom);
+    id.data.set(data);
+    ctx.putImageData(id, 0, 0);
   };
 
-  const requestAnimationFrame = () =>
-    window.requestAnimationFrame(run);
+  const requestAnimationFrame = () => window.requestAnimationFrame(run);
 
   const handleResize = (_e: unknown, run = true) => {
     canvas.width = width = window.innerWidth;
     canvas.height = height = window.innerHeight;
-
     id = ctx?.createImageData(width, height);
-
     run && requestAnimationFrame();
   };
 
-  onMount(async () => {
+  onMount(() => {
     window.addEventListener('resize', handleResize);
     handleResize(null, false);
-
     ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
     id = ctx?.createImageData(width, height);
-
     requestAnimationFrame();
   });
 
-  onDestroy(() => {
-    window.removeEventListener('resize', handleResize);
-  });
+  onDestroy(() => window.removeEventListener('resize', handleResize));
 
   const handleMouseDown = (e: MouseEvent) => {
     prevMousePos = { x: e.clientX, y: e.clientY };
@@ -71,7 +55,6 @@
         center_x -= ((e.clientX - prevMousePos.x) / 1.5) / (100 * zoomOr);
         center_y -= ((e.clientY - prevMousePos.y) / 1.5) / (100 * zoomOr);
         prevMousePos = { x: e.clientX, y: e.clientY };
-
         requestAnimationFrame();
     }
   };
