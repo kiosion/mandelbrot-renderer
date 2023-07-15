@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { compute } from 'mandelbrot_wasm';
+  import { Renderer } from 'mandelbrot_wasm';
   import { onDestroy, onMount } from 'svelte';
 
   export const updateZoom = (n: number) => {
@@ -8,37 +8,40 @@
   };
   export let zoom = 1.0;
 
+  let WASMRenderer: InstanceType<typeof Renderer>;
+
   const max_iter = 200;
   let width: number;
   let height: number;
   let center_x = -0.6;
   let center_y = 0.0;
   let canvas: HTMLCanvasElement;
-  let ctx: CanvasRenderingContext2D;
-  let id: ImageData;
   let mouseDown = false;
   let prevMousePos = { x: 0, y: 0 };
 
-  const run = () => {
-    const data = compute(width, height, max_iter, center_x, center_y, zoom);
-    id.data.set(data);
-    ctx.putImageData(id, 0, 0);
+  const run = async () => {
+    console.time('compute');
+    await WASMRenderer.compute(width, height, max_iter, center_x, center_y, zoom);
+
+    console.timeEnd('compute');
   };
 
   const requestAnimationFrame = () => window.requestAnimationFrame(run);
 
   const handleResize = (_e: unknown, run = true) => {
-    canvas.width = width = window.innerWidth;
-    canvas.height = height = window.innerHeight;
-    id = ctx?.createImageData(width, height);
+    // canvas.width = width = window.innerWidth;
+    // canvas.height = height = window.innerHeight;
+    width = window.innerWidth;
+    height = window.innerHeight;
+
     run && requestAnimationFrame();
   };
 
-  onMount(() => {
+  onMount(async () => {
+    WASMRenderer = await new Renderer();
     window.addEventListener('resize', handleResize);
     handleResize(null, false);
-    ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-    id = ctx?.createImageData(width, height);
+
     requestAnimationFrame();
   });
 
@@ -81,6 +84,7 @@
 </script>
 
 <canvas
+  id="canvas"
   bind:this={canvas}
   on:mousedown={handleMouseDown}
   on:mouseup={() => mouseDown = false}

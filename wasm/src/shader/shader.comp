@@ -1,0 +1,58 @@
+#version 450
+#extension GL_ARB_compute_shader : enable
+
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, set = 0, binding = 0) buffer Input {
+    int width;
+    int height;
+    int max_iter;
+    double center_x;
+    double center_y;
+    double zoom;
+} inputData;
+
+layout(std430, set = 0, binding = 1) buffer Output {
+    uint data[];
+} outputData;
+
+void main() {
+    int index = int(gl_GlobalInvocationID.x);
+    int x = index % inputData.width;
+    int y = index / inputData.width;
+    double aspect_ratio = double(inputData.width) / double(inputData.height);
+    double x_range = 3.5 / inputData.zoom;
+    double y_range = x_range / aspect_ratio;
+    double x_start = inputData.center_x - x_range / 2.0;
+    double y_start = inputData.center_y - y_range / 2.0;
+    double cx = x_start + (double(x) / double(inputData.width)) * x_range;
+    double cy = y_start + (double(y) / double(inputData.height)) * y_range;
+    vec2 c = vec2(cx, cy);
+    vec2 z = vec2(0.0, 0.0);
+    int iter = 0;
+    while (length(z) <= 4.0 && iter < inputData.max_iter) {
+        z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
+        iter++;
+    }
+    vec3 color;
+    if (iter == inputData.max_iter) {
+        color = vec3(0, 0, 0);
+    } else {
+        float smoothed_iter = float(iter) + 1.0 - log(log(length(z))) / log(2.0);
+        color = vec3(
+            cos(0.01 * smoothed_iter),
+            cos(0.02 * smoothed_iter),
+            cos(0.03 * smoothed_iter)
+        ) * 0.5 + 0.5;
+        // double smoothed_iter = double(iter) + 1.0 - log(log(length(z))) / log(2.0);
+        // color = vec3(
+        //     cos(0.01 * smoothed_iter),
+        //     cos(0.02 * smoothed_iter),
+        //     cos(0.03 * smoothed_iter)
+        // ) * 0.5 + 0.5;
+    }
+    outputData.data[index*4+0] = uint(color.r * 255.0);
+    outputData.data[index*4+1] = uint(color.g * 255.0);
+    outputData.data[index*4+2] = uint(color.b * 255.0);
+    outputData.data[index*4+3] = 255;
+}
